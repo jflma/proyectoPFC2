@@ -1,0 +1,79 @@
+# ----------------------------------------------------------------------
+# Variables de entorno y secretos
+# ----------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ----------------------------------------------------------------------
+# Datos del proyecto (Archivos pesados / generados automáticamente)
+# ----------------------------------------------------------------------
+# Snapshots crudos y base de datos inicial (evitar subir GBs)
+dataset/
+
+# Directorio principal de procesamiento de la canalización
+# (corpus, filtered, reports, patched, validated, gráficas PNG, etc.)
+data/
+
+# Archivos de metadatos generados dinámicamente durante el pipeline
+metadata/*.csv
+metadata/*.json
+
+# ----------------------------------------------------------------------
+# Archivos temporales y de logs específicos del proyecto
+# ----------------------------------------------------------------------
+*.log
+_probe_*.py
+.codeql/
+.temp/
+.tmp/
+pipeline.md
+
+# ----------------------------------------------------------------------
+# Python / Entorno Virtual
+# ----------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+.env_python/
+ENV/
+
+# ----------------------------------------------------------------------
+# Testing y Cobertura
+# ----------------------------------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+
+# ----------------------------------------------------------------------
+# IDEs y Editores de código
+# ----------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

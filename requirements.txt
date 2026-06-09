@@ -1,0 +1,31 @@
+# ===================================================
+# requirements.txt — RefactVulIA Pipeline
+# Python 3.13.3 compatible
+# ===================================================
+
+# --- Análisis y datos ---
+pandas>=2.2.0
+scikit-learn>=1.5.0
+matplotlib>=3.9.0
+numpy>=2.0.0
+
+# --- GitHub API ---
+PyGithub>=2.3.0
+
+# --- LLM local (HuggingFace fallback para perplexity) ---
+# Descomentar solo si Ollama no expone logprobs nativos
+# transformers>=4.40.0
+# torch>=2.3.0
+# accelerate>=0.30.0
+# bitsandbytes>=0.43.0
+
+# --- Análisis estático ---
+semgrep>=1.70.0
+
+# --- Utilidades ---
+python-dotenv>=1.0.1
+requests>=2.32.0
+pytest>=8.2.0
+tqdm>=4.66.0
+matplotlib>=3.9.0
+semgrep>=1.66.0
