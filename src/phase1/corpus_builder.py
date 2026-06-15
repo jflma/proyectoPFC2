@@ -1,26 +1,3 @@
-"""
-FASE 1: Corpus de Deuda Evolutiva (CDE)
-========================================
-Archivo: src/phase1/corpus_builder.py
-
-Inputs:
-  - Archivos JSON de DevGPT en DEVGPT_DATA_PATH
-    Estructura real del snapshot:
-      data["Sources"] -> list de items
-      item["ChatgptSharing"] -> list de shares
-      share["Conversations"] -> list de {Prompt, Answer, ListOfCode}
-      code_block: {Type, Content, ReplaceString}
-  - GitHub API (token en .env)
-
-Outputs:
-  - data/corpus/{file_id}{ext}  — archivos de código nombrados por UUID
-  - metadata/registro_metadatos.csv  
-
-Criterio de aceptación (Fase 1):
-  registro_metadatos.csv existe con >=50 filas;
-  todos los archivos en data/corpus/ tienen UUID como nombre.
-"""
-
 import json
 import logging
 import os
@@ -33,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-# ── Importar desde shared ──────────────────────────────────────────────────────
+#  Importar desde shared
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.shared.constants import (
     DATA_CORPUS_DIR,
