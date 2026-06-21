@@ -5,31 +5,33 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 # ─── Ollama ───────────────────────────────────────────────
-OLLAMA_BASE_URL      = os.getenv("OLLAMA_BASE_URL",       "http://localhost:11434")
-PERPLEXITY_MODEL     = os.getenv("OLLAMA_PERPLEXITY_MODEL","codellama:7b-code-q4_K_M")
-REFACTOR_MODEL       = os.getenv("OLLAMA_REFACTOR_MODEL",  "llama3:8b-instruct-q4_K_M")
+OLLAMA_BASE_URL      = os.getenv("OLLAMA_BASE_URL",         "http://localhost:11434")
+PERPLEXITY_MODEL     = os.getenv("OLLAMA_PERPLEXITY_MODEL", "qwen2.5-coder:7b-instruct-q4_K_M")
+REFACTOR_MODEL       = os.getenv("OLLAMA_REFACTOR_MODEL",   "qwen2.5-coder:7b-instruct-q4_K_M")
+VERIFIER_MODEL       = PERPLEXITY_MODEL  # Retrocompatibilidad
 
 # ─── Thresholds ───────────────────────────────────────────
-PERPLEXITY_THRESHOLD = float(os.getenv("PERPLEXITY_THRESHOLD", "25.0"))
-K_MAX                = int(os.getenv("MAX_MITIGATION_RETRIES", "2"))
+PERPLEXITY_THRESHOLD = float(os.getenv("PERPLEXITY_THRESHOLD",           "25.0"))
+K_BUFFER             = int(os.getenv("MAX_MITIGATION_RETRIES_BUFFER",    "2"))
+K_MAX_FALLBACK       = K_BUFFER + 1
 
 # ─── Herramientas externas ────────────────────────────────
 CODEQL_PATH          = os.getenv("CODEQL_PATH", "codeql")
 GITHUB_TOKEN         = os.getenv("GITHUB_TOKEN", "")
+NVD_API_KEY          = os.getenv("NVD_API_KEY", "")  # opcional, solo para rate-limit NVD
 
 # ─── Rutas del pipeline (relativas a la raíz del proyecto) ─
-ROOT_DIR          = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DEVGPT_DATA_PATH  = os.getenv("DEVGPT_DATA_PATH",
-                               os.path.join(ROOT_DIR, "dataset", "data", "raw", "devgpt_snapshots"))
+ROOT_DIR           = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-DATA_CORPUS_DIR   = os.path.join(ROOT_DIR, "data", "corpus")
-DATA_FILTERED_DIR = os.path.join(ROOT_DIR, "data", "filtered")
-DATA_REPORTS_DIR  = os.path.join(ROOT_DIR, "data", "reports")
-DATA_PATCHED_DIR  = os.path.join(ROOT_DIR, "data", "patched")
-DATA_VALIDATED_DIR= os.path.join(ROOT_DIR, "data", "validated")
-METADATA_DIR      = os.path.join(ROOT_DIR, "metadata")
-METADATA_CSV      = os.path.join(METADATA_DIR, "registro_metadatos.csv")
-METRICS_JSON      = os.path.join(METADATA_DIR, "metricas_finales.json")
+DATA_CORPUS_DIR    = os.path.join(ROOT_DIR, "data", "corpus")
+DATA_FILTERED_DIR  = os.path.join(ROOT_DIR, "data", "filtered")
+DATA_REPORTS_DIR   = os.path.join(ROOT_DIR, "data", "reports")
+DATA_PATCHED_DIR   = os.path.join(ROOT_DIR, "data", "patched")
+DATA_VALIDATED_DIR = os.path.join(ROOT_DIR, "data", "validated")
+DATA_GRAFICOS_DIR  = os.path.join(ROOT_DIR, "data", "graficos")
+METADATA_DIR       = os.path.join(ROOT_DIR, "metadata")
+METADATA_CSV       = os.path.join(METADATA_DIR, "registro_metadatos.csv")
+METRICS_JSON       = os.path.join(METADATA_DIR, "metricas_finales.json")
 
 # ─── Extensiones de lenguaje ──────────────────────────────
 EXTENSION_MAP = {"python": ".py", "c": ".c", "cpp": ".cpp"}

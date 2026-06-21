@@ -96,7 +96,7 @@ def _ollama_token_score(prefix: str, continuation: str) -> Optional[float]:
         "prompt": prefix,
         "options": {
             "temperature": 0,
-            "num_predict": len(continuation) // 3,  # aprox tokens
+            "num_predict": len(continuation) // 3,  
             "stop": [],
         },
         "stream": False,
@@ -151,7 +151,7 @@ def calculate_perplexity_heuristic(code_text: str, language: str) -> float:
     total_lines = max(len(non_empty), 1)
     text_lower = code_text.lower()
 
-    score = 50.0  # baseline neutral
+    score = 50.0 
 
 
     # 1. Ratio de comentarios 
@@ -230,14 +230,9 @@ def calculate_perplexity_heuristic(code_text: str, language: str) -> float:
 
 def calculate_perplexity(code_text: str, language: str,
                          use_ollama: bool = True) -> tuple[float, str]:
-    """
-    Calcula perplexity usando la estrategia disponible.
-    Retorna (score, metodo_usado).
-    
-    Si use_ollama=False, va directamente a heurística léxica (rápido).
-    """
+
     if use_ollama:
-        # Estrategia 1: logprobs nativos
+        # logprobs nativos
         try:
             score = calculate_perplexity_ollama_logprobs(code_text)
             if score is not None:
@@ -420,8 +415,6 @@ def run_phase2(force_reprocess: bool = False, mode: str = "auto") -> int:
 
     return total_ai
 
-
-#  Entry point directo 
 if __name__ == "__main__":
     import argparse
 

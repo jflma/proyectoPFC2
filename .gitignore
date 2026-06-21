@@ -28,6 +28,7 @@ _probe_*.py
 .temp/
 .tmp/
 pipeline.md
+pipeline.excalidraw
 
 # ----------------------------------------------------------------------
 # Python / Entorno Virtual

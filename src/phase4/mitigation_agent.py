@@ -1,18 +1,20 @@
-import os
-import sys
 import json
 import logging
-import requests
+import os
+import sys
 from pathlib import Path
+from typing import Optional
+
+import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.shared.constants import (
     DATA_FILTERED_DIR,
     DATA_PATCHED_DIR,
     DATA_REPORTS_DIR,
+    EXTENSION_MAP,
     OLLAMA_BASE_URL,
     REFACTOR_MODEL,
-    EXTENSION_MAP,
 )
 from src.shared.code_extractor import extract_code_block
 
@@ -23,45 +25,58 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-OLLAMA_TIMEOUT = 180
+OLLAMA_TIMEOUT = 240  
+
 
 PROMPT_TEMPLATE = """\
 SYSTEM:
-Eres un experto en seguridad de software. Tu unica tarea es corregir vulnerabilidades de seguridad en codigo. \
-Responde UNICAMENTE con el codigo corregido dentro de bloques de codigo markdown (```{language} ... ```). \
-No incluyas explicaciones, comentarios adicionales ni texto fuera del bloque.
+You are a software security expert. Your ONLY task is to fix ALL security \
+vulnerabilities listed below in the provided code. \
+Respond ONLY with the corrected code inside a markdown code block \
+(```{language} ... ```). Do NOT include explanations, additional comments, \
+or any text outside the code block.
 
 USER:
-Lenguaje: {language}
-Vulnerabilidad: {cwe_id}
-Descripcion: {description}
-Linea aproximada: {line}
+Language: {language}
 
-REGLAS:
-1. Corrige UNICAMENTE la vulnerabilidad indicada.
-2. NO cambies la logica de negocio ni el comportamiento observable.
-3. Usa parametrizacion, validacion de entrada o control de acceso segun corresponda.
-4. El codigo resultante debe ejecutarse/compilarse sin errores de sintaxis.
+VULNERABILITIES TO FIX (fix ALL of them):
+{vulns_str}
 
-CODIGO A CORREGIR:
+RULES:
+1. Fix ALL vulnerabilities listed above in a SINGLE response.
+2. Do NOT change business logic or observable behavior.
+3. Use parameterization, input validation, or access control as appropriate.
+4. The resulting code MUST compile/run without syntax errors.
+5. Apply the minimal changes needed — do not refactor unrelated code.
+
+CODE TO FIX:
 ```{language}
 {code_content}
 ```"""
 
 
-def request_patch(code: str, vuln: dict, language: str) -> str | None:
-    prompt = PROMPT_TEMPLATE.format(
-        language=language,
-        cwe_id=vuln.get("cwe_id", "UNKNOWN"),
-        description=vuln.get("description", "N/A"),
-        line=vuln.get("line", "?"),
-        code_content=code,
-    )
+def _formatear_todas_las_vulnerabilidades(vulns: list[dict]) -> str:
+
+    lines = []
+    for i, v in enumerate(vulns, 1):
+        lines.append(
+            f"[{i}] {v.get('cwe_id', 'UNKNOWN')} — {v.get('description', 'N/A')}\n"
+            f"    Line ≈ {v.get('line', '?')} | "
+            f"CVSS: {v.get('cvss_score', 'N/A')} | "
+            f"Source: {v.get('source', 'N/A')}"
+        )
+    return "\n".join(lines)
+
+def _llamar_ollama(prompt: str, language: str) -> Optional[str]:
+    """Envía el prompt a Ollama y retorna el código extraído, o None si falla."""
     payload = {
         "model": REFACTOR_MODEL,
         "prompt": prompt,
         "stream": False,
-        "options": {"temperature": 0.1, "num_predict": 2048},
+        "options": {
+            "temperature": 0.1,
+            "num_predict": 4096,
+        },
     }
     try:
         resp = requests.post(
@@ -71,20 +86,23 @@ def request_patch(code: str, vuln: dict, language: str) -> str | None:
         )
         resp.raise_for_status()
         raw = resp.json().get("response", "")
+
         code_out = extract_code_block(raw, language)
         if not code_out:
-            log.warning("LLM no retorno bloque de codigo valido.")
+            log.warning("LLM no retorno bloque de código valido.")
         return code_out
     except requests.exceptions.Timeout:
-        log.warning("Timeout esperando respuesta de Ollama.")
+        log.warning("Timeout esperando respuesta de Ollama (model=%s).", REFACTOR_MODEL)
     except requests.exceptions.ConnectionError:
         log.warning("No se pudo conectar a Ollama en %s.", OLLAMA_BASE_URL)
     except Exception as e:
-        log.warning("Error en request_patch: %s", e)
+        log.warning("Error en llamada a Ollama: %s", e)
     return None
 
 
+
 def run_phase4_single(file_id: str, iteracion: int) -> bool:
+   
     report_path = os.path.join(DATA_REPORTS_DIR, f"{file_id}.json")
     if not os.path.exists(report_path):
         log.warning("Reporte no encontrado: %s", report_path)
@@ -101,9 +119,7 @@ def run_phase4_single(file_id: str, iteracion: int) -> bool:
     language = report.get("language", "python")
     ext = EXTENSION_MAP.get(language, ".py")
 
-    # Fuente: iteracion 1 → filtered con nombre real, iteraciones siguientes → patched anterior
     if iteracion == 1:
-        # El reporte guarda el filename original (ej. syn_sqli_001.py)
         original_filename = report.get("filename", "")
         if original_filename:
             src = os.path.join(DATA_FILTERED_DIR, original_filename)
@@ -119,19 +135,35 @@ def run_phase4_single(file_id: str, iteracion: int) -> bool:
     with open(src, "r", encoding="utf-8", errors="replace") as f:
         code = f.read()
 
-    # Parchear la vulnerabilidad de mayor CVSS primero
-    vuln = sorted(vulns, key=lambda v: v.get("cvss_score", 0), reverse=True)[0]
-    log.info("Parcheando %s iter %d — %s (CVSS %.1f)", file_id, iteracion,
-             vuln.get("cwe_id"), vuln.get("cvss_score", 0))
+    vulns_str = _formatear_todas_las_vulnerabilidades(vulns)
 
-    patched = request_patch(code, vuln, language)
-    if patched is None:
+    log.info(
+        "Parcheando %s (iter %d) — %d vulnerabilidades: %s",
+        file_id, iteracion,
+        len(vulns),
+        ", ".join(v.get("cwe_id", "?") for v in vulns),
+    )
+
+    prompt = PROMPT_TEMPLATE.format(
+        language=language,
+        vulns_str=vulns_str,
+        code_content=code,
+    )
+
+    codigo_parcheado = _llamar_ollama(prompt, language)
+
+    if codigo_parcheado is None:
+        log.warning(
+            "Ollama no pudo generar parche para %s (iter %d). "
+            "Considera configurar una API externa como fallback.",
+            file_id, iteracion,
+        )
         return False
 
     os.makedirs(DATA_PATCHED_DIR, exist_ok=True)
     dest = os.path.join(DATA_PATCHED_DIR, f"{file_id}_v{iteracion}{ext}")
     with open(dest, "w", encoding="utf-8") as f:
-        f.write(patched)
+        f.write(codigo_parcheado)
 
     log.info("Parche guardado en %s", dest)
     return True
